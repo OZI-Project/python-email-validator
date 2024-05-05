@@ -1,3 +1,21 @@
+In Development
+--------------
+
+* A new option to parse `My Name <address@domain>` strings, i.e. a display name plus an email address in angle brackets, is now available. It is off by default.
+* When a domain name has no MX record but does have an A or AAAA record, if none of the IP addresses in the response are globally reachable (i.e. not Private-Use, Loopback, etc.), the response is treated as if there was no A/AAAA response and the email address will fail the deliverability check.
+* When a domain name has no MX record but does have an A or AAAA record, the mx field in the object returned by validate_email incorrectly held the IP addresses rather than the domain itself.
+* Fixes in tests.
+
+2.1.1 (February 26, 2024)
+-------------------------
+
+* Fixed typo 'marking' instead of 'marketing' in case-insensitive mailbox name list.
+* When DNS-based deliverability checks fail, in some cases exceptions are now thrown with `raise ... from` for better nested exception tracking.
+* Fixed tests to work when no local resolver can be configured.
+* This project is now licensed under the Unlicense (instead of CC0).
+* Minor improvements to tests.
+* Minor improvements to code style.
+
 2.1.0 (October 22, 2023)
 ------------------------
 

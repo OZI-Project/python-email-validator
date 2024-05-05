@@ -10,36 +10,33 @@ from mocked_dns_response import MockedDnsResponseData, MockedDnsResponseDataClea
 RESOLVER = MockedDnsResponseData.create_resolver()
 
 
-def test_deliverability_found():
-    response = validate_email_deliverability('gmail.com', 'gmail.com', dns_resolver=RESOLVER)
-    assert response.keys() == {'mx', 'mx_fallback_type'}
-    assert response['mx_fallback_type'] is None
-    assert len(response['mx']) > 1
-    assert len(response['mx'][0]) == 2
-    assert isinstance(response['mx'][0][0], int)
-    assert response['mx'][0][1].endswith('.com')
+@pytest.mark.parametrize(
+    'domain,expected_response',
+    [
+        ('gmail.com', {'mx': [(5, 'gmail-smtp-in.l.google.com'), (10, 'alt1.gmail-smtp-in.l.google.com'), (20, 'alt2.gmail-smtp-in.l.google.com'), (30, 'alt3.gmail-smtp-in.l.google.com'), (40, 'alt4.gmail-smtp-in.l.google.com')], 'mx_fallback_type': None}),
+        ('pages.github.com', {'mx': [(0, 'pages.github.com')], 'mx_fallback_type': 'A'}),
+    ],
+)
+def test_deliverability_found(domain, expected_response):
+    response = validate_email_deliverability(domain, domain, dns_resolver=RESOLVER)
+    assert response == expected_response
 
 
-def test_deliverability_fails():
-    # Domain does not exist.
-    domain = 'xkxufoekjvjfjeodlfmdfjcu.com'
-    with pytest.raises(EmailUndeliverableError, match=f'The domain name {domain} does not exist'):
-        validate_email_deliverability(domain, domain, dns_resolver=RESOLVER)
+@pytest.mark.parametrize(
+    'domain,error',
+    [
+        ('xkxufoekjvjfjeodlfmdfjcu.com', 'The domain name {domain} does not exist'),
+        ('example.com', 'The domain name {domain} does not accept email'),  # Null MX record
+        ('g.mail.com', 'The domain name {domain} does not accept email'),  # No MX record but invalid AAAA record fallback (issue #134)
+        ('nellis.af.mil', 'The domain name {domain} does not send email'),  # No MX record, A record fallback, reject-all SPF record.
 
-    # Null MX record.
-    domain = 'example.com'
-    with pytest.raises(EmailUndeliverableError, match=f'The domain name {domain} does not accept email'):
-        validate_email_deliverability(domain, domain, dns_resolver=RESOLVER)
-
-    # No MX record, A record fallback, reject-all SPF record.
-    domain = 'nellis.af.mil'
-    with pytest.raises(EmailUndeliverableError, match=f'The domain name {domain} does not send email'):
-        validate_email_deliverability(domain, domain, dns_resolver=RESOLVER)
-
-    # No MX or A/AAAA records, but some other DNS records must
-    # exist such that the response is NOANSWER instead of NXDOMAIN.
-    domain = 'justtxt.joshdata.me'
-    with pytest.raises(EmailUndeliverableError, match=f'The domain name {domain} does not accept email'):
+        # No MX or A/AAAA records, but some other DNS records must
+        # exist such that the response is NOANSWER instead of NXDOMAIN.
+        ('justtxt.joshdata.me', 'The domain name {domain} does not accept email'),
+    ],
+)
+def test_deliverability_fails(domain, error):
+    with pytest.raises(EmailUndeliverableError, match=error.format(domain=domain)):
         validate_email_deliverability(domain, domain, dns_resolver=RESOLVER)
 
 
