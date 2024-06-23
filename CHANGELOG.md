@@ -1,7 +1,17 @@
-In Development
---------------
+2.2.0 (June 20, 2024)
+---------------------
 
+* Email addresses with internationalized local parts could, with rare Unicode characters, be returned as valid but actually be invalid in their normalized form (returned in the `normalized` field). In particular, it is possible to get a normalized address with a ";" character, which is not valid and could change the interpretation of the address. Local parts now re-validated after Unicode NFC normalization to ensure that invalid characters cannot be injected into the normalized address and that characters with length-increasing NFC normalizations cannot cause a local part to exceed the maximum length after normalization. Thanks to khanh@calif.io from https://calif.io for reporting the issue.
+* The length check for email addresses with internationalized local parts is now also applied to the original address string prior to Unicode NFC normalization, which may be longer and could exceed the maximum email address length, to protect callers who do not use the returned normalized address.
+* Improved error message for IDNA domains that are too long or have invalid characters after Unicode normalization.
 * A new option to parse `My Name <address@domain>` strings, i.e. a display name plus an email address in angle brackets, is now available. It is off by default.
+* Improvements to Python typing.
+* Some additional tests added.
+
+2.1.2 (June 16, 2024)
+---------------------
+
+* The domain name length limit is corrected from 255 to 253 IDNA ASCII characters. I misread the RFCs.
 * When a domain name has no MX record but does have an A or AAAA record, if none of the IP addresses in the response are globally reachable (i.e. not Private-Use, Loopback, etc.), the response is treated as if there was no A/AAAA response and the email address will fail the deliverability check.
 * When a domain name has no MX record but does have an A or AAAA record, the mx field in the object returned by validate_email incorrectly held the IP addresses rather than the domain itself.
 * Fixes in tests.
@@ -67,7 +77,7 @@ Version 1.2.1 (May 1, 2022)
 * example.com/net/org are removed from the special-use reserved domain names list so that they do not raise exceptions if check_deliverability is off.
 * Improved README.
 
-Verison 1.2.0 (April 24, 2022)
+Version 1.2.0 (April 24, 2022)
 ------------------------------
 
 * Reject domains with NULL MX records (when deliverability checks

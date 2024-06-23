@@ -12,7 +12,7 @@ users by their email address like on a registration form.
 Key features:
 
 * Checks that an email address has the correct syntax --- great for
-  email-based registration/login forms or validing data.
+  email-based registration/login forms or validating data.
 * Gives friendly English error messages when validation fails that you
   can display to end-users.
 * Checks deliverability (optional): Does the domain name resolve?
@@ -20,10 +20,11 @@ Key features:
 * Supports internationalized domain names (like `@ツ.life`),
   internationalized local parts (like `ツ@example.com`),
   and optionally parses display names (e.g. `"My Name" <me@example.com>`).
-* Rejects addresses with unsafe Unicode characters, obsolete email address
-  syntax that you'd find unexpected, special use domain names like
-  `@localhost`, and domains without a dot by default. This is an
-  opinionated library!
+* Rejects addresses with invalid or unsafe Unicode characters,
+  obsolete email address syntax that you'd find unexpected,
+  special use domain names like `@localhost`,
+  and domains without a dot by default.
+  This is an opinionated library!
 * Normalizes email addresses (important for internationalized
   and quoted-string addresses! see below).
 * Python type annotations are used.
@@ -142,7 +143,7 @@ The `validate_email` function also accepts the following keyword arguments
 
 `allow_quoted_local=False`: Set to `True` to allow obscure and potentially problematic email addresses in which the part of the address before the @-sign contains spaces, @-signs, or other surprising characters when the local part is surrounded in quotes (so-called quoted-string local parts). In the object returned by `validate_email`, the normalized local part removes any unnecessary backslash-escaping and even removes the surrounding quotes if the address would be valid without them. You can also set `email_validator.ALLOW_QUOTED_LOCAL` to `True` to turn this on for all calls by default.
 
-`allow_domain_literal=False`: Set to `True` to allow bracketed IPv4 and "IPv6:"-prefixd IPv6 addresses in the domain part of the email address. No deliverability checks are performed for these addresses. In the object returned by `validate_email`, the normalized domain will use the condensed IPv6 format, if applicable. The object's `domain_address` attribute will hold the parsed `ipaddress.IPv4Address` or `ipaddress.IPv6Address` object if applicable. You can also set `email_validator.ALLOW_DOMAIN_LITERAL` to `True` to turn this on for all calls by default.
+`allow_domain_literal=False`: Set to `True` to allow bracketed IPv4 and "IPv6:"-prefixed IPv6 addresses in the domain part of the email address. No deliverability checks are performed for these addresses. In the object returned by `validate_email`, the normalized domain will use the condensed IPv6 format, if applicable. The object's `domain_address` attribute will hold the parsed `ipaddress.IPv4Address` or `ipaddress.IPv6Address` object if applicable. You can also set `email_validator.ALLOW_DOMAIN_LITERAL` to `True` to turn this on for all calls by default.
 
 `allow_display_name=False`: Set to `True` to allow a display name and bracketed address in the input string, like `My Name <me@example.org>`. It's implemented in the spirit but not the letter of RFC 5322 3.4, so it may be stricter or more relaxed than what you want. The display name, if present, is provided in the returned object's `display_name` field after being unquoted and unescaped. You can also set `email_validator.ALLOW_DISPLAY_NAME` to `True` to turn this on for all calls by default.
 
@@ -184,8 +185,12 @@ Internationalized email addresses
 The email protocol SMTP and the domain name system DNS have historically
 only allowed English (ASCII) characters in email addresses and domain names,
 respectively. Each has adapted to internationalization in a separate
-way, creating two separate aspects to email address
-internationalization.
+way, creating two separate aspects to email address internationalization.
+
+(If your mail submission library doesn't support Unicode at all, then
+immediately prior to mail submission you must replace the email address with
+its ASCII-ized form. This library gives you back the ASCII-ized form in the
+`ascii_email` field in the returned object.)
 
 ### Internationalized domain names (IDN)
 
@@ -208,6 +213,19 @@ email addresses, only English letters, numbers, and some punctuation
 (`._!#$%&'^``*+-=~/?{|}`) are allowed. In internationalized email address
 local parts, a wider range of Unicode characters are allowed.
 
+Email addresses with these non-ASCII characters require that your mail
+submission library and all the mail servers along the route to the destination,
+including your own outbound mail server, all support the
+[SMTPUTF8 (RFC 6531)](https://tools.ietf.org/html/rfc6531) extension.
+Support for SMTPUTF8 varies. If you know ahead of time that SMTPUTF8 is not
+supported by your mail submission stack, then you must filter out addresses that
+require SMTPUTF8 using the `allow_smtputf8=False` keyword argument (see above).
+This will cause the validation function to raise a `EmailSyntaxError` if
+delivery would require SMTPUTF8. If you do not set `allow_smtputf8=False`,
+you can also check the value of the `smtputf8` field in the returned object.
+
+### Unsafe Unicode characters are rejected
+
 A surprisingly large number of Unicode characters are not safe to display,
 especially when the email address is concatenated with other text, so this
 library tries to protect you by not permitting reserved, non-, private use,
@@ -218,48 +236,10 @@ cannot combine with something outside of the email address string or with
 the @-sign). See https://qntm.org/safe and https://trojansource.codes/
 for relevant prior work. (Other than whitespace, these are checks that
 you should be applying to nearly all user inputs in a security-sensitive
-context.)
+context.) This does not guard against the well known problem that many
+Unicode characters look alike, which can be used to fool humans reading
+displayed text.
 
-These character checks are performed after Unicode normalization (see below),
-so you are only fully protected if you replace all user-provided email addresses
-with the normalized email address string returned by this library. This does not
-guard against the well known problem that many Unicode characters look alike
-(or are identical), which can be used to fool humans reading displayed text.
-
-Email addresses with these non-ASCII characters require that your mail
-submission library and the mail servers along the route to the destination,
-including your own outbound mail server, all support the
-[SMTPUTF8 (RFC 6531)](https://tools.ietf.org/html/rfc6531) extension.
-Support for SMTPUTF8 varies. See the `allow_smtputf8` parameter.
-
-### If you know ahead of time that SMTPUTF8 is not supported by your mail submission stack
-
-By default all internationalized forms are accepted by the validator.
-But if you know ahead of time that SMTPUTF8 is not supported by your
-mail submission stack, then you must filter out addresses that require
-SMTPUTF8 using the `allow_smtputf8=False` keyword argument (see above).
-This will cause the validation function to raise a `EmailSyntaxError` if
-delivery would require SMTPUTF8. That's just in those cases where
-non-ASCII characters appear before the @-sign. If you do not set
-`allow_smtputf8=False`, you can also check the value of the `smtputf8`
-field in the returned object.
-
-If your mail submission library doesn't support Unicode at all --- even
-in the domain part of the address --- then immediately prior to mail
-submission you must replace the email address with its ASCII-ized form.
-This library gives you back the ASCII-ized form in the `ascii_email`
-field in the returned object, which you can get like this:
-
-```python
-emailinfo = validate_email(email, allow_smtputf8=False)
-email = emailinfo.ascii_email
-```
-
-The local part is left alone (if it has internationalized characters
-`allow_smtputf8=False` will force validation to fail) and the domain
-part is converted to [IDNA ASCII](https://tools.ietf.org/html/rfc5891).
-(You probably should not do this at account creation time so you don't
-change the user's login information without telling them.)
 
 Normalization
 -------------
@@ -274,7 +254,7 @@ address.
 
 For example, the CJK fullwidth Latin letters are considered semantically
 equivalent in domain names to their ASCII counterparts. This library
-normalizes them to their ASCII counterparts:
+normalizes them to their ASCII counterparts (as required by IDNA):
 
 ```python
 emailinfo = validate_email("me@Ｄｏｍａｉｎ.com")
@@ -287,9 +267,7 @@ Because an end-user might type their email address in different (but
 equivalent) un-normalized forms at different times, you ought to
 replace what they enter with the normalized form immediately prior to
 going into your database (during account creation), querying your database
-(during login), or sending outbound mail. Normalization may also change
-the length of an email address, and this may affect whether it is valid
-and acceptable by your SMTP provider.
+(during login), or sending outbound mail.
 
 The normalizations include lowercasing the domain part of the email
 address (domain names are case-insensitive), [Unicode "NFC"
@@ -302,6 +280,11 @@ characters](https://en.wikipedia.org/wiki/Halfwidth_and_fullwidth_forms)
 in the domain part, possibly other
 [UTS46](http://unicode.org/reports/tr46) mappings on the domain part,
 and conversion from Punycode to Unicode characters.
+
+Normalization may change the characters in the email address and the
+length of the email address, such that a string might be a valid address
+before normalization but invalid after, or vice versa. This library only
+permits addresses that are valid both before and after normalization.
 
 (See [RFC 6532 (internationalized email) section
 3.1](https://tools.ietf.org/html/rfc6532#section-3.1) and [RFC 5895
@@ -317,13 +300,6 @@ they are unnecessary. For IPv6 domain literals, the IPv6 address is
 normalized to condensed form. [RFC 2142](https://datatracker.ietf.org/doc/html/rfc2142)
 also requires lowercase normalization for some specific mailbox names like `postmaster@`.
 
-### Length checks
-
-This library checks that the length of the email address is not longer than
-the maximum length. The check is performed on the normalized form of the
-address, which might be different from a string provided by a user. If you
-send email to the original string and not the normalized address, the email
-might be rejected because the original address could be too long.
 
 Examples
 --------

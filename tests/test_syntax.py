@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from email_validator import EmailSyntaxError, \
@@ -5,12 +7,19 @@ from email_validator import EmailSyntaxError, \
                             ValidatedEmail
 
 
+def MakeValidatedEmail(**kwargs: Any) -> ValidatedEmail:
+    ret = ValidatedEmail()
+    for k, v in kwargs.items():
+        setattr(ret, k, v)
+    return ret
+
+
 @pytest.mark.parametrize(
     'email_input,output',
     [
         (
             'Abc@example.tld',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='Abc',
                 ascii_local_part='Abc',
                 smtputf8=False,
@@ -22,7 +31,7 @@ from email_validator import EmailSyntaxError, \
         ),
         (
             'Abc.123@test-example.com',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='Abc.123',
                 ascii_local_part='Abc.123',
                 smtputf8=False,
@@ -34,7 +43,7 @@ from email_validator import EmailSyntaxError, \
         ),
         (
             'user+mailbox/department=shipping@example.tld',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='user+mailbox/department=shipping',
                 ascii_local_part='user+mailbox/department=shipping',
                 smtputf8=False,
@@ -46,7 +55,7 @@ from email_validator import EmailSyntaxError, \
         ),
         (
             "!#$%&'*+-/=?^_`.{|}~@example.tld",
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part="!#$%&'*+-/=?^_`.{|}~",
                 ascii_local_part="!#$%&'*+-/=?^_`.{|}~",
                 smtputf8=False,
@@ -58,7 +67,7 @@ from email_validator import EmailSyntaxError, \
         ),
         (
             'jeff@臺網中心.tw',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='jeff',
                 ascii_local_part='jeff',
                 smtputf8=False,
@@ -70,7 +79,7 @@ from email_validator import EmailSyntaxError, \
         ),
         (
             '"quoted local part"@example.org',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='"quoted local part"',
                 ascii_local_part='"quoted local part"',
                 smtputf8=False,
@@ -82,7 +91,7 @@ from email_validator import EmailSyntaxError, \
         ),
         (
             '"de-quoted.local.part"@example.org',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='de-quoted.local.part',
                 ascii_local_part='de-quoted.local.part',
                 smtputf8=False,
@@ -94,7 +103,7 @@ from email_validator import EmailSyntaxError, \
         ),
         (
             'MyName <me@example.org>',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='me',
                 ascii_local_part='me',
                 smtputf8=False,
@@ -107,7 +116,7 @@ from email_validator import EmailSyntaxError, \
         ),
         (
             'My Name <me@example.org>',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='me',
                 ascii_local_part='me',
                 smtputf8=False,
@@ -120,7 +129,7 @@ from email_validator import EmailSyntaxError, \
         ),
         (
             r'"My.\"Na\\me\".Is" <"me \" \\ me"@example.org>',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part=r'"me \" \\ me"',
                 ascii_local_part=r'"me \" \\ me"',
                 smtputf8=False,
@@ -133,7 +142,7 @@ from email_validator import EmailSyntaxError, \
         ),
     ],
 )
-def test_email_valid(email_input, output):
+def test_email_valid(email_input: str, output: ValidatedEmail) -> None:
     # These addresses do not require SMTPUTF8. See test_email_valid_intl_local_part
     # for addresses that are valid but require SMTPUTF8. Check that it passes with
     # allow_smtput8 both on and off.
@@ -157,7 +166,7 @@ def test_email_valid(email_input, output):
     [
         (
             '伊昭傑@郵件.商務',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='伊昭傑',
                 smtputf8=True,
                 ascii_domain='xn--5nqv22n.xn--lhr59c',
@@ -167,7 +176,7 @@ def test_email_valid(email_input, output):
         ),
         (
             'राम@मोहन.ईन्फो',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='राम',
                 smtputf8=True,
                 ascii_domain='xn--l2bl7a9d.xn--o1b8dj2ki',
@@ -177,7 +186,7 @@ def test_email_valid(email_input, output):
         ),
         (
             'юзер@екзампл.ком',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='юзер',
                 smtputf8=True,
                 ascii_domain='xn--80ajglhfv.xn--j1aef',
@@ -187,7 +196,7 @@ def test_email_valid(email_input, output):
         ),
         (
             'θσερ@εχαμπλε.ψομ',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='θσερ',
                 smtputf8=True,
                 ascii_domain='xn--mxahbxey0c.xn--xxaf0a',
@@ -197,7 +206,7 @@ def test_email_valid(email_input, output):
         ),
         (
             '葉士豪@臺網中心.tw',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='葉士豪',
                 smtputf8=True,
                 ascii_domain='xn--fiqq24b10vi0d.tw',
@@ -207,7 +216,7 @@ def test_email_valid(email_input, output):
         ),
         (
             '葉士豪@臺網中心.台灣',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='葉士豪',
                 smtputf8=True,
                 ascii_domain='xn--fiqq24b10vi0d.xn--kpry57d',
@@ -217,7 +226,7 @@ def test_email_valid(email_input, output):
         ),
         (
             'jeff葉@臺網中心.tw',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='jeff葉',
                 smtputf8=True,
                 ascii_domain='xn--fiqq24b10vi0d.tw',
@@ -227,7 +236,7 @@ def test_email_valid(email_input, output):
         ),
         (
             'ñoñó@example.tld',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='ñoñó',
                 smtputf8=True,
                 ascii_domain='example.tld',
@@ -237,7 +246,7 @@ def test_email_valid(email_input, output):
         ),
         (
             '我買@example.tld',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='我買',
                 smtputf8=True,
                 ascii_domain='example.tld',
@@ -247,7 +256,7 @@ def test_email_valid(email_input, output):
         ),
         (
             '甲斐黒川日本@example.tld',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='甲斐黒川日本',
                 smtputf8=True,
                 ascii_domain='example.tld',
@@ -257,7 +266,7 @@ def test_email_valid(email_input, output):
         ),
         (
             'чебурашкаящик-с-апельсинами.рф@example.tld',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='чебурашкаящик-с-апельсинами.рф',
                 smtputf8=True,
                 ascii_domain='example.tld',
@@ -267,7 +276,7 @@ def test_email_valid(email_input, output):
         ),
         (
             'उदाहरण.परीक्ष@domain.with.idn.tld',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='उदाहरण.परीक्ष',
                 smtputf8=True,
                 ascii_domain='domain.with.idn.tld',
@@ -277,7 +286,7 @@ def test_email_valid(email_input, output):
         ),
         (
             'ιωάννης@εεττ.gr',
-            ValidatedEmail(
+            MakeValidatedEmail(
                 local_part='ιωάννης',
                 smtputf8=True,
                 ascii_domain='xn--qxaa9ba.gr',
@@ -285,9 +294,19 @@ def test_email_valid(email_input, output):
                 normalized='ιωάννης@εεττ.gr',
             ),
         ),
+        (
+            's\u0323\u0307@nfc.tld',
+            MakeValidatedEmail(
+                local_part='\u1E69',
+                smtputf8=True,
+                ascii_domain='nfc.tld',
+                domain='nfc.tld',
+                normalized='\u1E69@nfc.tld',
+            ),
+        ),
     ],
 )
-def test_email_valid_intl_local_part(email_input, output):
+def test_email_valid_intl_local_part(email_input: str, output: ValidatedEmail) -> None:
     # Check that it passes when allow_smtputf8 is True.
     assert validate_email(email_input, check_deliverability=False) == output
 
@@ -309,7 +328,7 @@ def test_email_valid_intl_local_part(email_input, output):
         ('"quoted.with..unicode.λ"@example.com', '"quoted.with..unicode.λ"'),
         ('"quoted.with.extraneous.\\escape"@example.com', 'quoted.with.extraneous.escape'),
     ])
-def test_email_valid_only_if_quoted_local_part(email_input, normalized_local_part):
+def test_email_valid_only_if_quoted_local_part(email_input: str, normalized_local_part: str) -> None:
     # These addresses are invalid with the default allow_quoted_local=False option.
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input)
@@ -323,7 +342,7 @@ def test_email_valid_only_if_quoted_local_part(email_input, normalized_local_par
     assert validated.local_part == normalized_local_part
 
 
-def test_domain_literal():
+def test_domain_literal() -> None:
     # Check parsing IPv4 addresses.
     validated = validate_email("me@[127.0.0.1]", allow_domain_literal=True)
     assert validated.domain == "[127.0.0.1]"
@@ -343,6 +362,7 @@ def test_domain_literal():
 @pytest.mark.parametrize(
     'email_input,error_msg',
     [
+        ('hello.world', 'An email address must have an @-sign.'),
         ('my@localhost', 'The part after the @-sign is not valid. It should have a period.'),
         ('my@.leadingdot.com', 'An email address cannot have a period immediately after the @-sign.'),
         ('my@．leadingfwdot.com', 'An email address cannot have a period immediately after the @-sign.'),
@@ -372,25 +392,38 @@ def test_domain_literal():
         ('me@⒈wouldbeinvalid.com',
          "The part after the @-sign contains invalid characters (Codepoint U+2488 not allowed "
          "at position 1 in '⒈wouldbeinvalid.com')."),
+        ('me@\u037e.com', "The part after the @-sign contains invalid characters after Unicode normalization: ';'."),
+        ('me@\u1fef.com', "The part after the @-sign contains invalid characters after Unicode normalization: '`'."),
         ('@example.com', 'There must be something before the @-sign.'),
         ('white space@test', 'The email address contains invalid characters before the @-sign: SPACE.'),
         ('test@white space', 'The part after the @-sign contains invalid characters: SPACE.'),
         ('\nmy@example.com', 'The email address contains invalid characters before the @-sign: U+000A.'),
         ('m\ny@example.com', 'The email address contains invalid characters before the @-sign: U+000A.'),
         ('my\n@example.com', 'The email address contains invalid characters before the @-sign: U+000A.'),
+        ('me.\u037e@example.com', 'After Unicode normalization: The email address contains invalid characters before the @-sign: \';\'.'),
         ('test@\n', 'The part after the @-sign contains invalid characters: U+000A.'),
         ('bad"quotes"@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
         ('obsolete."quoted".atom@example.com', 'The email address contains invalid characters before the @-sign: \'"\'.'),
         ('11111111112222222222333333333344444444445555555555666666666677777@example.com', 'The email address is too long before the @-sign (1 character too many).'),
         ('111111111122222222223333333333444444444455555555556666666666777777@example.com', 'The email address is too long before the @-sign (2 characters too many).'),
-        ('me@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.111111111122222222223333333333444444444455555555556.com', 'The email address is too long (4 characters too many).'),
-        ('me@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555566.com', 'The email address is too long after the @-sign (1 character too many).'),
-        ('me@中1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555566.com', 'The email address is too long after the @-sign.'),
+        ('\uFB2C111111122222222223333333333444444444455555555556666666666777777@example.com', 'After Unicode normalization: The email address is too long before the @-sign (2 characters too many).'),
+        ('me@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.11111111112222222222333333333344444444445555555555.com', 'The email address is too long after the @-sign (1 character too many).'),
+        ('me@中1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444.com', 'The email address is too long after the @-sign (1 byte too many after IDNA encoding).'),
+        ('me@\uFB2C1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444.com', 'The email address is too long after the @-sign (5 bytes too many after IDNA encoding).'),
+        ('me@1111111111222222222233333333334444444444555555555666666666677777.com', 'After the @-sign, periods cannot be separated by so many characters (1 character too many).'),
+        ('me@11111111112222222222333333333344444444445555555556666666666777777.com', 'After the @-sign, periods cannot be separated by so many characters (2 characters too many).'),
+        ('me@中111111111222222222233333333334444444444555555555666666.com', 'The part after the @-sign is invalid (Label too long).'),
+        ('meme@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.com', 'The email address is too long (4 characters too many).'),
         ('my.long.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.11111111112222222222333333333344444.info', 'The email address is too long (2 characters too many).'),
-        ('my.long.address@λ111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.11111111112222222222333333.info', 'The email address is too long (when converted to IDNA ASCII).'),
-        ('my.long.address@λ111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444.info', 'The email address is too long (at least 1 character too many).'),
-        ('my.λong.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.111111111122222222223333333333444.info', 'The email address is too long (when encoded in bytes).'),
-        ('my.λong.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444.info', 'The email address is too long (at least 1 character too many).'),
+        ('my.long.address@λ111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444.info', 'The email address is too long (1-2 characters too many).'),
+        ('my.long.address@\uFB2C111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444.info', 'The email address is too long (1-3 characters too many).'),
+        ('my.λong.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.111111111122222222223333333333444.info', 'The email address is too long (1 character too many).'),
+        ('my.λong.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444.info', 'The email address is too long (1-2 characters too many).'),
+        ('my.\u0073\u0323\u0307.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444.info', 'The email address is too long (1-2 characters too many).'),
+        ('my.\uFB2C.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.11111111112222222222333333333344444.info', 'The email address is too long (1 character too many).'),
+        ('my.\uFB2C.address@1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.11111111112222222222333333333344.info', 'The email address is too long after normalization (1 byte too many).'),
+        ('my.long.address@λ111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.11111111112222222222333333.info', 'The email address is too long when the part after the @-sign is converted to IDNA ASCII (1 byte too many).'),
+        ('my.λong.address@λ111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.1111111111222222222233333333334444444444555555555.6666666666777777777788888888889999999999000000000.11111111112222222222333333.info', 'The email address is too long when the part after the @-sign is converted to IDNA ASCII (2 bytes too many).'),
         ('me@bad-tld-1', 'The part after the @-sign is not valid. It should have a period.'),
         ('me@bad.tld-2', 'The part after the @-sign is not valid. It is not within a valid top-level domain.'),
         ('me@xn--0.tld', 'The part after the @-sign is not valid IDNA (Invalid A-label).'),
@@ -404,6 +437,10 @@ def test_domain_literal():
         ('me@[untaggedtext]', 'The part after the @-sign in brackets is not an IPv4 address and has no address literal tag.'),
         ('me@[tag:invalid space]', 'The part after the @-sign contains invalid characters in brackets: SPACE.'),
         ('<me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
+        ('<me@example.com', 'An open angle bracket at the start of the email address has to be followed by a close angle bracket at the end.'),
+        ('<me@example.com> !', 'There can\'t be anything after the email address.'),
+        ('<\u0338me@example.com', 'The email address contains invalid characters before the @-sign: \'<\'.'),
+        ('DisplayName <me@-example.com>', 'An email address cannot have a hyphen immediately after the @-sign.'),
         ('DisplayName <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
         ('Display Name <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
         ('\"Display Name\" <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
@@ -411,11 +448,11 @@ def test_domain_literal():
         ('\"Display.Name\" <me@example.com>', 'A display name and angle brackets around the email address are not permitted here.'),
     ],
 )
-def test_email_invalid_syntax(email_input, error_msg):
+def test_email_invalid_syntax(email_input: str, error_msg: str) -> None:
     # Since these all have syntax errors, deliverability
     # checks do not arise.
     with pytest.raises(EmailSyntaxError) as exc_info:
-        validate_email(email_input)
+        validate_email(email_input, check_deliverability=False)
     assert str(exc_info.value) == error_msg
 
 
@@ -430,7 +467,7 @@ def test_email_invalid_syntax(email_input, error_msg):
         ('me@test.test.test'),
     ],
 )
-def test_email_invalid_reserved_domain(email_input):
+def test_email_invalid_reserved_domain(email_input: str) -> None:
     # Since these all fail deliverabiltiy from a static list,
     # DNS deliverability checks do not arise.
     with pytest.raises(EmailSyntaxError) as exc_info:
@@ -454,7 +491,7 @@ def test_email_invalid_reserved_domain(email_input):
         ('\uFDEF', 'U+FDEF'),  # unassigned (Cn)
     ],
 )
-def test_email_unsafe_character(s, expected_error):
+def test_email_unsafe_character(s: str, expected_error: str) -> None:
     # Check for various unsafe characters that are permitted by the email
     # specs but should be disallowed for being unsafe or not sensible Unicode.
 
@@ -474,26 +511,26 @@ def test_email_unsafe_character(s, expected_error):
         ('"quoted.with..unicode.λ"@example.com', 'Internationalized characters before the @-sign are not supported: \'λ\'.'),
     ],
 )
-def test_email_invalid_character_smtputf8_off(email_input, expected_error):
+def test_email_invalid_character_smtputf8_off(email_input: str, expected_error: str) -> None:
     # Check that internationalized characters are rejected if allow_smtputf8=False.
     with pytest.raises(EmailSyntaxError) as exc_info:
         validate_email(email_input, allow_smtputf8=False, test_environment=True)
     assert str(exc_info.value) == expected_error
 
 
-def test_email_empty_local():
+def test_email_empty_local() -> None:
     validate_email("@test", allow_empty_local=True, test_environment=True)
 
     # This next one might not be desirable.
     validate_email("\"\"@test", allow_empty_local=True, allow_quoted_local=True, test_environment=True)
 
 
-def test_email_test_domain_name_in_test_environment():
+def test_email_test_domain_name_in_test_environment() -> None:
     validate_email("anything@test", test_environment=True)
     validate_email("anything@mycompany.test", test_environment=True)
 
 
-def test_case_insensitive_mailbox_name():
+def test_case_insensitive_mailbox_name() -> None:
     validate_email("POSTMASTER@test", test_environment=True).normalized = "postmaster@test"
     validate_email("NOT-POSTMASTER@test", test_environment=True).normalized = "NOT-POSTMASTER@test"
 
@@ -673,7 +710,7 @@ def test_case_insensitive_mailbox_name():
         ['test.(comment)test@iana.org', 'ISEMAIL_DEPREC_COMMENT']
     ]
 )
-def test_pyisemail_tests(email_input, status):
+def test_pyisemail_tests(email_input: str, status: str) -> None:
     if status == "ISEMAIL_VALID":
         # All standard email address forms should not raise an exception
         # with any set of parsing options.
