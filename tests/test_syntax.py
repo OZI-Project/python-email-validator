@@ -295,24 +295,35 @@ def test_email_valid(email_input: str, output: ValidatedEmail) -> None:
             ),
         ),
         (
-            's\u0323\u0307@nfc.tld',
+            '\"s\u0323\u0307\" <s\u0323\u0307@nfc.tld>',
             MakeValidatedEmail(
                 local_part='\u1E69',
                 smtputf8=True,
                 ascii_domain='nfc.tld',
                 domain='nfc.tld',
                 normalized='\u1E69@nfc.tld',
+                display_name='\u1E69'
+            ),
+        ),
+        (
+            '＠@fullwidth.at',
+            MakeValidatedEmail(
+                local_part='＠',
+                smtputf8=True,
+                ascii_domain='fullwidth.at',
+                domain='fullwidth.at',
+                normalized='＠@fullwidth.at',
             ),
         ),
     ],
 )
 def test_email_valid_intl_local_part(email_input: str, output: ValidatedEmail) -> None:
     # Check that it passes when allow_smtputf8 is True.
-    assert validate_email(email_input, check_deliverability=False) == output
+    assert validate_email(email_input, check_deliverability=False, allow_display_name=True) == output
 
     # Check that it fails when allow_smtputf8 is False.
     with pytest.raises(EmailSyntaxError) as exc_info:
-        validate_email(email_input, allow_smtputf8=False, check_deliverability=False)
+        validate_email(email_input, allow_smtputf8=False, check_deliverability=False, allow_display_name=True)
     assert "Internationalized characters before the @-sign are not supported: " in str(exc_info.value)
 
 
@@ -363,6 +374,8 @@ def test_domain_literal() -> None:
     'email_input,error_msg',
     [
         ('hello.world', 'An email address must have an @-sign.'),
+        ('hello＠world', 'The email address has the "full-width" at-sign (@) character instead of a regular at-sign.'),
+        ('hello﹫world', 'The email address has the "small commercial at" character instead of a regular at-sign.'),
         ('my@localhost', 'The part after the @-sign is not valid. It should have a period.'),
         ('my@.leadingdot.com', 'An email address cannot have a period immediately after the @-sign.'),
         ('my@．leadingfwdot.com', 'An email address cannot have a period immediately after the @-sign.'),

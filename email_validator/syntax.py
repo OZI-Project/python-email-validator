@@ -1,4 +1,5 @@
-from .exceptions_types import EmailSyntaxError, ValidatedEmail
+from .exceptions import EmailSyntaxError
+from .types import ValidatedEmail
 from .rfc_constants import EMAIL_MAX_LENGTH, LOCAL_PART_MAX_LENGTH, DOMAIN_MAX_LENGTH, \
     DOT_ATOM_TEXT, DOT_ATOM_TEXT_INTL, ATEXT_RE, ATEXT_INTL_DOT_RE, ATEXT_HOSTNAME_INTL, QTEXT_INTL, \
     DNS_LABEL_LENGTH_LIMIT, DOT_ATOM_TEXT_HOSTNAME, DOMAIN_NAME_REGEX, DOMAIN_LITERAL_CHARS
@@ -82,7 +83,28 @@ def split_email(email: str) -> Tuple[Optional[str], str, str, bool]:
             else:
                 left_part += c
 
+        # No special symbol found. The special symbols always
+        # include an at-sign, so this always indicates a missing
+        # at-sign. The other symbol is optional.
         if len(left_part) == len(text):
+            # The full-width at-sign might occur in CJK contexts.
+            # We can't accept it because we only accept addresess
+            # that are actually valid. But if this is common we
+            # may want to consider accepting and normalizing full-
+            # width characters for the other special symbols (and
+            # full-width dot is already accepted in internationalized
+            # domains) with a new option.
+            # See https://news.ycombinator.com/item?id=42235268.
+            if "＠" in text:
+                raise EmailSyntaxError("The email address has the \"full-width\" at-sign (@) character instead of a regular at-sign.")
+
+            # Check another near-homoglyph for good measure because
+            # homoglyphs in place of required characters could be
+            # very confusing. We may want to consider checking for
+            # homoglyphs anywhere we look for a special symbol.
+            if "﹫" in text:
+                raise EmailSyntaxError('The email address has the "small commercial at" character instead of a regular at-sign.')
+
             raise EmailSyntaxError("An email address must have an @-sign.")
 
         # The right part is whatever is left.
@@ -280,8 +302,8 @@ def validate_email_local_part(local: str, allow_smtputf8: bool = True, allow_emp
         valid = "dot-atom"
         requires_smtputf8 = True
 
-    # There are no syntactic restrictions on quoted local parts, so if
-    # it was originally quoted, it is probably valid. More characters
+    # There are no dot-atom syntax restrictions on quoted local parts, so
+    # if it was originally quoted, it is probably valid. More characters
     # are allowed, like @-signs, spaces, and quotes, and there are no
     # restrictions on the placement of dots, as in dot-atom local parts.
     elif quoted_local_part:

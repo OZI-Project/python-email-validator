@@ -1,7 +1,8 @@
 from typing import Optional, Union, TYPE_CHECKING
 import unicodedata
 
-from .exceptions_types import EmailSyntaxError, ValidatedEmail
+from .exceptions import EmailSyntaxError
+from .types import ValidatedEmail
 from .syntax import split_email, validate_email_local_part, validate_email_domain_name, validate_email_domain_literal, validate_email_length
 from .rfc_constants import CASE_INSENSITIVE_MAILBOX_NAMES
 
@@ -72,6 +73,14 @@ def validate_email(
     display_name, local_part, domain_part, is_quoted_local_part \
         = split_email(email)
 
+    if display_name:
+        # UTS #39 3.3 Email Security Profiles for Identifiers requires
+        # display names (incorrectly called "quoted-string-part" there)
+        # to be NFC normalized. Since these are not a part of what we
+        # are really validating, we won't check that the input was NFC
+        # normalized, but we'll normalize in output.
+        display_name = unicodedata.normalize("NFC", display_name)
+
     # Collect return values in this instance.
     ret = ValidatedEmail()
     ret.original = ((local_part if not is_quoted_local_part
@@ -94,6 +103,15 @@ def validate_email(
     # RFC 6532 section 3.1 says that Unicode NFC normalization should be applied,
     # so we'll return the NFC-normalized local part. Since the caller may use that
     # string in place of the original string, ensure it is also valid.
+    #
+    # UTS #39 3.3 Email Security Profiles for Identifiers requires local parts
+    # to be NFKC normalized, which loses some information in characters that can
+    # be decomposed. We might want to consider applying NFKC normalization, but
+    # we can't make the change easily because it would break database lookups
+    # for any caller that put a normalized address from a previous version of
+    # this library. (UTS #39 seems to require that the *input* be NKFC normalized
+    # and has other requirements that are hard to check without additional Unicode
+    # data, and I don't know whether the rules really apply in the wild.)
     normalized_local_part = unicodedata.normalize("NFC", ret.local_part)
     if normalized_local_part != ret.local_part:
         try:
